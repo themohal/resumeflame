@@ -104,8 +104,20 @@ export default function RoastPage() {
       Paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
         customData: { resume_id: id, tier },
-        successCallback: () => {
+        successCallback: async () => {
+          // Mark paid on client immediately
           setResume((prev) => prev ? { ...prev, paid: true } : prev);
+
+          // Confirm payment and trigger AI generation (fallback if webhook is delayed)
+          try {
+            await fetch("/api/confirm-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ resumeId: id, tier }),
+            });
+          } catch (err) {
+            console.error("Confirm payment error:", err);
+          }
         },
       });
     } catch (err) {
