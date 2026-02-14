@@ -59,7 +59,26 @@ export default function RoastPage() {
     return () => clearInterval(interval);
   }, [fetchResume]);
 
-  const initPaddle = (): Promise<void> => {
+  const [selectedTier, setSelectedTier] = useState<string>("basic");
+
+  const confirmPayment = useCallback(async (tier: string) => {
+    console.log("Confirming payment for:", id, tier);
+    setResume((prev) => prev ? { ...prev, paid: true } : prev);
+
+    try {
+      const res = await fetch("/api/confirm-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeId: id, tier }),
+      });
+      const data = await res.json();
+      console.log("Confirm payment response:", data);
+    } catch (err) {
+      console.error("Confirm payment error:", err);
+    }
+  }, [id]);
+
+  const initPaddle = useCallback((): Promise<void> => {
     return new Promise((resolve, reject) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const win = window as any;
@@ -77,6 +96,17 @@ export default function RoastPage() {
           }
           win.Paddle.Initialize({
             token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "",
+            eventCallback: (event: { name: string; data?: Record<string, unknown> }) => {
+              console.log("Paddle event:", event.name);
+              if (event.name === "checkout.completed") {
+                console.log("Checkout completed event received");
+                confirmPayment(selectedTier);
+                // Close overlay after a short delay
+                setTimeout(() => {
+                  try { win.Paddle.Checkout.close(); } catch { /* ignore */ }
+                }, 1500);
+              }
+            },
           });
           resolve();
         } catch (err) {
@@ -87,9 +117,10 @@ export default function RoastPage() {
       script.onerror = () => reject(new Error("Failed to load Paddle.js"));
       document.head.appendChild(script);
     });
-  };
+  }, [confirmPayment, selectedTier]);
 
   const handlePayment = async (tier: "basic" | "pro") => {
+    setSelectedTier(tier);
     const priceId =
       tier === "pro"
         ? process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PRO
@@ -104,21 +135,6 @@ export default function RoastPage() {
       Paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
         customData: { resume_id: id, tier },
-        successCallback: async () => {
-          // Mark paid on client immediately
-          setResume((prev) => prev ? { ...prev, paid: true } : prev);
-
-          // Confirm payment and trigger AI generation (fallback if webhook is delayed)
-          try {
-            await fetch("/api/confirm-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ resumeId: id, tier }),
-            });
-          } catch (err) {
-            console.error("Confirm payment error:", err);
-          }
-        },
       });
     } catch (err) {
       console.error("Paddle checkout error:", err);
