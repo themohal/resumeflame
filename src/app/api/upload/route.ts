@@ -1,25 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
-
-// Disable worker for server-side usage
-GlobalWorkerOptions.workerSrc = "";
-
-async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-  const pdf = await getDocument({ data: new Uint8Array(buffer) }).promise;
-  let text = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ");
-    text += pageText + "\n";
-  }
-
-  return text.trim();
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,9 +18,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
     }
 
-    // Parse PDF text
-    const arrayBuffer = await file.arrayBuffer();
-    const resumeText = await extractTextFromPDF(arrayBuffer);
+    // Parse PDF text — import inner module to avoid pdf-parse loading test fixtures on Vercel
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js");
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const pdfData = await pdfParse(buffer);
+    const resumeText = (pdfData.text || "").trim();
 
     if (!resumeText || resumeText.length < 50) {
       return NextResponse.json(
