@@ -33,6 +33,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
+    // Verify payment before calling OpenAI
+    const supabase = getServiceSupabase();
+    const { data: resume, error: dbError } = await supabase
+      .from("resumes")
+      .select("paid")
+      .eq("id", resumeId)
+      .single();
+
+    if (dbError || !resume) {
+      return NextResponse.json({ error: "Resume not found" }, { status: 404 });
+    }
+
+    if (!resume.paid) {
+      return NextResponse.json({ error: "Payment required" }, { status: 402 });
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -68,7 +84,6 @@ Rules:
     const parsed = JSON.parse(roastResult);
 
     // Save to database
-    const supabase = getServiceSupabase();
     await supabase
       .from("resumes")
       .update({

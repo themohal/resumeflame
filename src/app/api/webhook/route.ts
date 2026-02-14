@@ -61,16 +61,34 @@ export async function POST(req: NextRequest) {
       const supabase = getServiceSupabase();
 
       // Mark as paid
-      await supabase
+      const { data: resume } = await supabase
         .from("resumes")
         .update({
           paid: true,
           tier,
           paddle_transaction_id: transactionId,
         })
-        .eq("id", resumeId);
+        .eq("id", resumeId)
+        .select("original_text")
+        .single();
 
       console.log(`Payment confirmed for resume ${resumeId}, tier: ${tier}`);
+
+      // Trigger roast + fix generation after payment
+      if (resume?.original_text) {
+        const origin = req.headers.get("origin") || req.nextUrl.origin;
+        fetch(`${origin}/api/roast`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeId, resumeText: resume.original_text }),
+        }).catch(console.error);
+
+        fetch(`${origin}/api/fix`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeId }),
+        }).catch(console.error);
+      }
     }
 
     return NextResponse.json({ received: true });

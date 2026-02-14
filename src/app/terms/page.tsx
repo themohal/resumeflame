@@ -14,14 +14,17 @@ export default function Terms() {
 
         <h2 className="text-xl font-semibold text-white mt-6">2. Usage</h2>
         <p>
-          Each user receives one free resume roast. Additional services (resume rewriting,
-          ATS optimization) require payment. You must be at least 16 years old to use this service.
+          All services on ResumeFlame require payment. Resume review, rewriting,
+          and ATS optimization are paid features. You must be at least 16 years old to use this service.
         </p>
 
         <h2 className="text-xl font-semibold text-white mt-6">3. Payments</h2>
         <p>
           Payments are processed securely through Paddle.com. All prices are in USD.
           By purchasing, you agree to Paddle&apos;s terms as our Merchant of Record.
+          <strong> All payments are final and non-refundable.</strong> Due to the
+          instant, digital nature of our AI-generated deliverables, no refunds,
+          returns, or credits will be issued once a transaction is completed.
         </p>
 
         <h2 className="text-xl font-semibold text-white mt-6">4. AI-Generated Content</h2>

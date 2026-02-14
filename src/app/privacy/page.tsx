@@ -19,7 +19,7 @@ export default function Privacy() {
         <ul className="list-disc pl-6 space-y-1">
           <li>To analyze and provide feedback on your resume</li>
           <li>To generate AI-powered resume rewrites</li>
-          <li>To track free usage limits (one free roast per visitor)</li>
+          <li>To track usage and manage your session</li>
           <li>To process payments and deliver purchased products</li>
         </ul>
 
@@ -38,7 +38,7 @@ export default function Privacy() {
 
         <h2 className="text-xl font-semibold text-white mt-6">5. Cookies</h2>
         <p>
-          We use a local storage identifier to track free usage. We do not use
+          We use a local storage identifier to track your session. We do not use
           tracking cookies or third-party analytics.
         </p>
 

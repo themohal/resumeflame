@@ -5,24 +5,32 @@ export default function Refund() {
       <div className="prose prose-invert prose-gray max-w-none space-y-4 text-gray-300 text-sm leading-relaxed">
         <p><strong>Effective Date:</strong> February 2026</p>
 
-        <h2 className="text-xl font-semibold text-white mt-6">Refund Eligibility</h2>
+        <h2 className="text-xl font-semibold text-white mt-6">No Refunds</h2>
         <p>
-          We offer a <strong>7-day refund policy</strong> on all purchases. If you are
-          not satisfied with your AI-generated resume rewrite, you may request a full
-          refund within 7 days of purchase.
+          All purchases on ResumeFlame are <strong>final and non-refundable</strong>.
+          Due to the digital and AI-generated nature of our service, we do not offer
+          refunds, returns, or credits once a payment has been processed.
         </p>
 
-        <h2 className="text-xl font-semibold text-white mt-6">How to Request a Refund</h2>
+        <h2 className="text-xl font-semibold text-white mt-6">Why No Refunds?</h2>
         <p>
-          To request a refund, contact us at <strong>support@resumeflame.com</strong> with
-          your purchase details. Refunds are processed within 5-10 business days through
-          Paddle, our payment processor.
+          When you purchase a resume rewrite, our AI immediately processes your resume
+          and delivers the result. Because the service is fully delivered at the time of
+          purchase, we cannot reverse or undo the transaction.
         </p>
 
-        <h2 className="text-xl font-semibold text-white mt-6">Exceptions</h2>
+        <h2 className="text-xl font-semibold text-white mt-6">Before You Purchase</h2>
         <p>
-          Refunds may be denied if we detect abuse of the refund policy (e.g., repeated
-          purchases and refund requests for the same service).
+          We encourage you to review the pricing and service description carefully before
+          making a purchase. By completing payment, you acknowledge that the service will
+          be delivered immediately and that no refunds will be issued.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">Contact</h2>
+        <p>
+          If you experience a technical issue that prevented delivery of your paid
+          service, please contact us at <strong>support@resumeflame.com</strong> and
+          we will work to resolve the issue.
         </p>
       </div>
     </main>

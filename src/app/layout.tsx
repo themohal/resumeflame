@@ -13,10 +13,49 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ResumeFlame - Get Your Resume Roasted by AI",
+  title: "ResumeFlame - AI Resume Reviewer & Professional Resume Rewriter",
   description:
-    "Upload your resume and get brutally honest AI feedback. Free roast, paid professional rewrite. Land more interviews.",
-  keywords: ["resume", "AI", "roast", "rewrite", "career", "job search"],
+    "Get your resume reviewed by AI in seconds. ResumeFlame scores your resume, identifies weaknesses, and rewrites it with ATS-optimized keywords to land more job interviews. Professional AI resume builder and career tool.",
+  keywords: [
+    "resume review",
+    "AI resume writer",
+    "resume checker",
+    "ATS resume optimization",
+    "resume rewriter",
+    "resume score",
+    "resume feedback",
+    "professional resume builder",
+    "job search tool",
+    "career advice",
+    "resume tips",
+    "resume improvement",
+    "AI resume builder",
+    "resume analyzer",
+    "cover letter generator",
+    "resume roast",
+    "land more interviews",
+    "job application help",
+  ],
+  openGraph: {
+    title: "ResumeFlame - AI Resume Reviewer & Professional Rewriter",
+    description:
+      "Upload your resume, get instant AI feedback and a score out of 10, then unlock a professionally rewritten resume optimized for ATS systems.",
+    type: "website",
+    siteName: "ResumeFlame",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ResumeFlame - AI Resume Reviewer & Professional Rewriter",
+    description:
+      "Get your resume scored and rewritten by AI. Land more interviews with ATS-optimized resumes.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://resumeflame.com",
+  },
 };
 
 export default function RootLayout({

@@ -27,10 +27,9 @@ export default function RoastPage() {
   const [roast, setRoast] = useState<RoastData | null>(null);
   const [fix, setFix] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fixLoading, setFixLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Poll for roast results
+  // Poll for resume data
   const fetchResume = useCallback(async () => {
     try {
       const res = await fetch(`/api/roast?id=${id}`);
@@ -41,11 +40,12 @@ export default function RoastPage() {
         setResume(data.resume);
         if (data.resume.roast) {
           setRoast(JSON.parse(data.resume.roast));
-          setLoading(false);
         }
         if (data.resume.fix) {
           setFix(data.resume.fix);
         }
+        // Stop showing loading once we have initial data
+        setLoading(false);
       }
     } catch {
       setError("Failed to load results");
@@ -59,124 +59,68 @@ export default function RoastPage() {
     return () => clearInterval(interval);
   }, [fetchResume]);
 
-  // Stop polling once roast is loaded
-  useEffect(() => {
-    if (roast) {
-      // Roast loaded, stop polling after one more check
-    }
-  }, [roast]);
-
-  const handleUnlockFix = async (tier: "basic" | "pro") => {
-    // Check if this is a free tier (first use)
-    if (resume?.tier === "free") {
-      setFixLoading(true);
-      try {
-        const res = await fetch("/api/fix", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeId: id }),
-        });
-        const data = await res.json();
-        if (data.fix) {
-          setFix(data.fix);
-          setResume((prev) => prev ? { ...prev, paid: true } : prev);
-        }
-      } catch {
-        setError("Failed to generate fix");
+  const initPaddle = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const win = window as any;
+      if (win.Paddle) {
+        resolve();
+        return;
       }
-      setFixLoading(false);
-      return;
-    }
+      const script = document.createElement("script");
+      script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+      script.onload = () => {
+        try {
+          const environment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || "sandbox";
+          if (environment === "sandbox") {
+            win.Paddle.Environment.set("sandbox");
+          }
+          win.Paddle.Initialize({
+            token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "",
+          });
+          resolve();
+        } catch (err) {
+          console.error("Paddle init error:", err);
+          reject(err);
+        }
+      };
+      script.onerror = () => reject(new Error("Failed to load Paddle.js"));
+      document.head.appendChild(script);
+    });
+  };
 
-    // Open Paddle checkout
+  const handlePayment = async (tier: "basic" | "pro") => {
     const priceId =
       tier === "pro"
         ? process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PRO
         : process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_BASIC;
 
-    const paddleEnv = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || "sandbox";
-    const paddleToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+    console.log("Opening Paddle checkout:", { tier, priceId });
 
-    // Load Paddle.js dynamically
-    if (!(window as unknown as Record<string, unknown>).Paddle) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-      script.onload = () => {
-        const Paddle = (window as unknown as Record<string, unknown>).Paddle as {
-          Environment: { set: (env: string) => void };
-          Initialize: (opts: { token: string }) => void;
-          Checkout: {
-            open: (opts: {
-              items: { priceId: string; quantity: number }[];
-              customData: { resume_id: string; tier: string };
-              successCallback: () => void;
-            }) => void;
-          };
-        };
-        if (paddleEnv === "sandbox") {
-          Paddle.Environment.set("sandbox");
-        }
-        Paddle.Initialize({ token: paddleToken || "" });
-        openCheckout(Paddle, priceId || "", tier);
-      };
-      document.head.appendChild(script);
-    } else {
-      const Paddle = (window as unknown as Record<string, unknown>).Paddle as {
-        Checkout: {
-          open: (opts: {
-            items: { priceId: string; quantity: number }[];
-            customData: { resume_id: string; tier: string };
-            successCallback: () => void;
-          }) => void;
-        };
-      };
-      openCheckout(Paddle, priceId || "", tier);
-    }
-  };
-
-  const openCheckout = (
-    Paddle: {
-      Checkout: {
-        open: (opts: {
-          items: { priceId: string; quantity: number }[];
-          customData: { resume_id: string; tier: string };
-          successCallback: () => void;
-        }) => void;
-      };
-    },
-    priceId: string,
-    tier: string
-  ) => {
-    Paddle.Checkout.open({
-      items: [{ priceId, quantity: 1 }],
-      customData: { resume_id: id, tier },
-      successCallback: async () => {
-        // Payment success — generate fix
-        setFixLoading(true);
-        // Wait a moment for webhook to process
-        await new Promise((r) => setTimeout(r, 3000));
-        const res = await fetch("/api/fix", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeId: id }),
-        });
-        const data = await res.json();
-        if (data.fix) {
-          setFix(data.fix);
+    try {
+      await initPaddle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Paddle = (window as any).Paddle;
+      Paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        customData: { resume_id: id, tier },
+        successCallback: () => {
           setResume((prev) => prev ? { ...prev, paid: true } : prev);
-        }
-        setFixLoading(false);
-      },
-    });
+        },
+      });
+    } catch (err) {
+      console.error("Paddle checkout error:", err);
+      setError("Payment system failed to load. Please refresh and try again.");
+    }
   };
 
   if (loading) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-20 text-center">
         <div className="animate-pulse">
-          <p className="text-4xl mb-4">&#128293;</p>
-          <h1 className="text-2xl font-bold">Roasting your resume...</h1>
-          <p className="text-gray-400 mt-2">This takes about 10 seconds</p>
+          <p className="text-4xl mb-4">&#128196;</p>
+          <h1 className="text-2xl font-bold">Processing your resume...</h1>
+          <p className="text-gray-400 mt-2">Just a moment</p>
         </div>
       </main>
     );
@@ -193,6 +137,84 @@ export default function RoastPage() {
     );
   }
 
+  // Payment wall — show before any results
+  if (!resume?.paid) {
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-16 text-center">
+        <p className="text-4xl mb-4">&#128293;</p>
+        <h1 className="text-3xl font-bold mb-4">Your Resume Is Ready to Be Roasted</h1>
+        <p className="text-gray-400 mb-2 max-w-lg mx-auto">
+          We&apos;ve received your resume. Choose a plan below to unlock your full AI
+          resume review, score, roast, and professionally rewritten resume.
+        </p>
+        <p className="text-xs text-gray-500 mb-8">
+          Results are delivered instantly after payment.
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto text-left">
+          <div className="bg-gray-900 border-2 border-orange-500 rounded-xl p-6 relative">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-xs font-bold px-3 py-1 rounded-full">
+              POPULAR
+            </span>
+            <h3 className="text-lg font-semibold">Basic Fix</h3>
+            <p className="text-3xl font-bold mt-2">$3</p>
+            <ul className="mt-4 space-y-2 text-sm text-gray-400">
+              <li>&#10003; Resume score (1-10)</li>
+              <li>&#10003; AI roast & feedback</li>
+              <li>&#10003; Key issues identified</li>
+              <li>&#10003; AI-rewritten resume</li>
+              <li>&#10003; Stronger action verbs</li>
+              <li>&#10003; Quantified achievements</li>
+            </ul>
+            <button
+              onClick={() => handlePayment("basic")}
+              className="mt-6 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              Get Basic Fix — $3
+            </button>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h3 className="text-lg font-semibold">Pro Fix</h3>
+            <p className="text-3xl font-bold mt-2">$5</p>
+            <ul className="mt-4 space-y-2 text-sm text-gray-400">
+              <li>&#10003; Everything in Basic</li>
+              <li>&#10003; ATS keyword optimization</li>
+              <li>&#10003; Tailored for specific job</li>
+              <li>&#10003; Formatted PDF download</li>
+              <li>&#10003; Cover letter bonus</li>
+              <li>&#10003; Professional summary</li>
+            </ul>
+            <button
+              onClick={() => handlePayment("pro")}
+              className="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              Get Pro Fix — $5
+            </button>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 mt-6">
+          All purchases are final and non-refundable. Payments processed securely via Paddle.
+        </p>
+      </main>
+    );
+  }
+
+  // Paid — waiting for results to generate
+  if (!roast) {
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <div className="animate-pulse">
+          <p className="text-4xl mb-4">&#128293;</p>
+          <h1 className="text-2xl font-bold">Roasting your resume...</h1>
+          <p className="text-gray-400 mt-2">Payment confirmed! Generating your results — this takes about 15 seconds.</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Results page — shown after payment and generation
   return (
     <main className="max-w-3xl mx-auto px-6 py-12">
       {/* Score */}
@@ -267,53 +289,9 @@ export default function RoastPage() {
               Copy to Clipboard
             </button>
           </div>
-        ) : fixLoading ? (
+        ) : (
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 text-center">
             <p className="text-gray-400 animate-pulse">Generating your improved resume...</p>
-          </div>
-        ) : (
-          <div>
-            {/* Blurred preview */}
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 relative overflow-hidden">
-              <div className="blur-content text-sm text-gray-400 leading-relaxed">
-                <p>JOHN DOE — Senior Software Engineer</p>
-                <p>Professional Summary: Results-driven engineer with 5+ years...</p>
-                <p>Led cross-functional team of 12 engineers to deliver...</p>
-                <p>Increased system performance by 340% through...</p>
-                <p>Built and deployed microservices architecture serving 2M+...</p>
-                <p>Reduced deployment time from 4 hours to 15 minutes...</p>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60">
-                <div className="text-center">
-                  <p className="text-lg font-semibold mb-4">Unlock Your Rewritten Resume</p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {resume?.tier === "free" ? (
-                      <button
-                        onClick={() => handleUnlockFix("basic")}
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                      >
-                        Unlock Free (1st Use)
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleUnlockFix("basic")}
-                          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                        >
-                          Basic Fix — $3
-                        </button>
-                        <button
-                          onClick={() => handleUnlockFix("pro")}
-                          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                        >
-                          Pro Fix + ATS — $5
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </section>
@@ -323,7 +301,7 @@ export default function RoastPage() {
         <p className="text-gray-400 mb-4">Share your roast score with friends</p>
         <button
           onClick={() => {
-            const text = `My resume just got roasted by AI and scored ${roast?.score}/10 on ResumeFlame! 🔥`;
+            const text = `My resume just got roasted by AI and scored ${roast?.score}/10 on ResumeFlame!`;
             navigator.clipboard.writeText(text);
           }}
           className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors"

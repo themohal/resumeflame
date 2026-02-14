@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Resume not found" }, { status: 404 });
     }
 
-    // Allow free tier (first use) or paid users
-    if (resume.tier !== "free" && !resume.paid) {
+    // Only allow paid users
+    if (!resume.paid) {
       return NextResponse.json({ error: "Payment required" }, { status: 402 });
     }
 
