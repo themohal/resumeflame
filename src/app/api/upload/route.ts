@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
     }
 
-    // Parse PDF text
+    // Parse PDF text — import inner module to avoid pdf-parse loading test fixtures
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse");
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js");
     const buffer = Buffer.from(await file.arrayBuffer());
     const pdfData = await pdfParse(buffer);
     const resumeText = (pdfData.text || "").trim();
