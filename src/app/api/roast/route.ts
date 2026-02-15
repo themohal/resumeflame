@@ -12,13 +12,28 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = getServiceSupabase();
-  const { data, error } = await supabase
+
+  // Try with processing_error column first, fall back without it
+  let { data, error } = await supabase
     .from("resumes")
-    .select("id, score, roast, fix, paid, tier")
+    .select("id, score, roast, fix, paid, tier, processing_error")
     .eq("id", id)
     .single();
 
+  if (error) {
+    // Column might not exist yet — try without processing_error
+    const fallback = await supabase
+      .from("resumes")
+      .select("id, score, roast, fix, paid, tier")
+      .eq("id", id)
+      .single();
+
+    data = fallback.data ? { ...fallback.data, processing_error: null } : null;
+    error = fallback.error;
+  }
+
   if (error || !data) {
+    console.error("Resume fetch error:", error?.message);
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

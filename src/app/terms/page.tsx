@@ -20,8 +20,8 @@ export default function Terms() {
 
         <h2 className="text-xl font-semibold text-white mt-6">3. Payments</h2>
         <p>
-          Payments are processed securely through Paddle.com. All prices are in USD.
-          By purchasing, you agree to Paddle&apos;s terms as our Merchant of Record.
+          Payments are processed securely through Lemon Squeezy. All prices are in USD.
+          By purchasing, you agree to Lemon Squeezy&apos;s terms as our Merchant of Record.
           <strong> All payments are final and non-refundable.</strong> Due to the
           instant, digital nature of our AI-generated deliverables, no refunds,
           returns, or credits will be issued once a transaction is completed.

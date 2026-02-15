@@ -12,7 +12,7 @@ export default function Privacy() {
         <ul className="list-disc pl-6 space-y-1">
           <li>Resume content (text extracted from uploaded PDFs)</li>
           <li>A random visitor identifier stored in your browser</li>
-          <li>Payment information (processed by Paddle — we never see your card details)</li>
+          <li>Payment information (processed by Lemon Squeezy — we never see your card details)</li>
         </ul>
 
         <h2 className="text-xl font-semibold text-white mt-6">2. How We Use Your Data</h2>

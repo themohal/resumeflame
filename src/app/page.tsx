@@ -219,7 +219,7 @@ export default function Home() {
           </div>
         </div>
         <p className="text-xs text-gray-500 text-center mt-6">
-          All purchases are final and non-refundable. Payments processed securely via Paddle.
+          All purchases are final and non-refundable. Payments processed securely via Lemon Squeezy.
         </p>
       </section>
 

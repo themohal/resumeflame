@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 
 interface RoastData {
   score: number;
@@ -17,10 +17,12 @@ interface ResumeData {
   fix: string | null;
   paid: boolean;
   tier: string;
+  processing_error: string | null;
 }
 
 export default function RoastPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
 
   const [resume, setResume] = useState<ResumeData | null>(null);
@@ -28,28 +30,65 @@ export default function RoastPage() {
   const [fix, setFix] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const lemonLoaded = useRef(false);
+  const paymentConfirmed = useRef(false);
+  const pollFailCount = useRef(0);
+
+  const returningFromPayment = searchParams.get("paid") === "1";
+
+  // Load Lemon Squeezy JS
+  useEffect(() => {
+    if (lemonLoaded.current) return;
+    lemonLoaded.current = true;
+    const script = document.createElement("script");
+    script.src = "https://assets.lemonsqueezy.com/lemon.js";
+    script.defer = true;
+    document.head.appendChild(script);
+  }, []);
 
   // Poll for resume data
   const fetchResume = useCallback(async () => {
     try {
       const res = await fetch(`/api/roast?id=${id}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        pollFailCount.current++;
+        // Stop polling after 15 consecutive failures (30 seconds)
+        if (pollFailCount.current >= 15) {
+          setError("Resume not found. It may have been deleted or the link is invalid.");
+          setLoading(false);
+        }
+        return;
+      }
+      pollFailCount.current = 0;
       const data = await res.json();
 
       if (data.resume) {
         setResume(data.resume);
         if (data.resume.roast) {
-          setRoast(JSON.parse(data.resume.roast));
+          try {
+            setRoast(JSON.parse(data.resume.roast));
+            setProcessing(false);
+          } catch {
+            // Invalid JSON
+          }
         }
         if (data.resume.fix) {
           setFix(data.resume.fix);
         }
-        // Stop showing loading once we have initial data
+        if (data.resume.processing_error) {
+          setProcessing(false);
+        }
         setLoading(false);
       }
     } catch {
-      setError("Failed to load results");
-      setLoading(false);
+      pollFailCount.current++;
+      if (pollFailCount.current >= 15) {
+        setError("Unable to reach server. Please check your connection.");
+        setLoading(false);
+      }
     }
   }, [id]);
 
@@ -59,10 +98,10 @@ export default function RoastPage() {
     return () => clearInterval(interval);
   }, [fetchResume]);
 
-  const [selectedTier, setSelectedTier] = useState<string>("basic");
-
   const confirmPayment = useCallback(async (tier: string) => {
     console.log("Confirming payment for:", id, tier);
+    setProcessing(true);
+    setError("");
     setResume((prev) => prev ? { ...prev, paid: true } : prev);
 
     try {
@@ -73,100 +112,224 @@ export default function RoastPage() {
       });
       const data = await res.json();
       console.log("Confirm payment response:", data);
+
+      if (!res.ok) {
+        setProcessing(false);
+        setError(data.error || "Something went wrong while processing your resume. Please try again.");
+      }
     } catch (err) {
       console.error("Confirm payment error:", err);
+      setProcessing(false);
+      setError("Something went wrong while processing your resume. Please try again.");
     }
   }, [id]);
 
-  const initPaddle = useCallback((): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const win = window as any;
-      if (win.Paddle) {
-        resolve();
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-      script.onload = () => {
-        try {
-          const environment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || "sandbox";
-          if (environment === "sandbox") {
-            win.Paddle.Environment.set("sandbox");
-          }
-          win.Paddle.Initialize({
-            token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "",
-            eventCallback: (event: { name: string; data?: Record<string, unknown> }) => {
-              console.log("Paddle event:", event.name);
-              if (event.name === "checkout.completed") {
-                console.log("Checkout completed event received");
-                confirmPayment(selectedTier);
-                // Close overlay after a short delay
-                setTimeout(() => {
-                  try { win.Paddle.Checkout.close(); } catch { /* ignore */ }
-                }, 1500);
-              }
-            },
-          });
-          resolve();
-        } catch (err) {
-          console.error("Paddle init error:", err);
-          reject(err);
+  // Detect redirect back from Lemon Squeezy
+  useEffect(() => {
+    if (paymentConfirmed.current) return;
+    const paidParam = searchParams.get("paid");
+    const tierParam = searchParams.get("tier");
+    if (paidParam === "1") {
+      paymentConfirmed.current = true;
+      setProcessing(true);
+      confirmPayment(tierParam || "basic");
+      window.history.replaceState({}, "", `/roast/${id}`);
+    }
+  }, [searchParams, confirmPayment, id]);
+
+  // Listen for Lemon Squeezy overlay checkout events
+  useEffect(() => {
+    function handleLSEvent(event: MessageEvent) {
+      if (typeof event.data !== "string") return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === "Checkout.Success") {
+          const customData = data.data?.order?.meta?.custom_data;
+          const tier = customData?.tier || "basic";
+          confirmPayment(tier);
         }
-      };
-      script.onerror = () => reject(new Error("Failed to load Paddle.js"));
-      document.head.appendChild(script);
-    });
-  }, [confirmPayment, selectedTier]);
+      } catch {
+        // Not a JSON message
+      }
+    }
+    window.addEventListener("message", handleLSEvent);
+    return () => window.removeEventListener("message", handleLSEvent);
+  }, [confirmPayment]);
 
   const handlePayment = async (tier: "basic" | "pro") => {
-    setSelectedTier(tier);
-    const priceId =
-      tier === "pro"
-        ? process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PRO
-        : process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_BASIC;
-
-    console.log("Opening Paddle checkout:", { tier, priceId });
-
+    setPaymentLoading(true);
     try {
-      await initPaddle();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Paddle = (window as any).Paddle;
-      Paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
-        customData: { resume_id: id, tier },
+      const res = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeId: id, tier }),
       });
+      const data = await res.json();
+
+      if (!res.ok || !data.checkoutUrl) {
+        throw new Error(data.error || "Failed to create checkout");
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const win = window as any;
+      if (win.createLemonSqueezy) win.createLemonSqueezy();
+
+      if (win.LemonSqueezy?.Url) {
+        win.LemonSqueezy.Url.Open(data.checkoutUrl);
+      } else {
+        window.location.href = data.checkoutUrl;
+      }
     } catch (err) {
-      console.error("Paddle checkout error:", err);
+      console.error("Checkout error:", err);
       setError("Payment system failed to load. Please refresh and try again.");
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (!fix) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Resume - ResumeFlame</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+      color: #1a1a1a;
+      font-size: 12pt;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: inherit;
+      margin: 0;
+    }
+    @media print {
+      body { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <pre>${fix.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+  <script>
+    window.onload = function() {
+      window.print();
+      window.onafterprint = function() { window.close(); };
+    };
+  </script>
+</body>
+</html>`);
+    printWindow.document.close();
+    setDownloaded(true);
+  };
+
+  // --- RENDER STATES ---
+
+  // Returning from payment + still loading initial data
+  if (loading && returningFromPayment) {
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <div className="animate-pulse">
+          <p className="text-4xl mb-4">&#128293;</p>
+          <h1 className="text-2xl font-bold">Analyzing your resume...</h1>
+          <p className="text-gray-400 mt-2">Payment confirmed! Generating your results — this takes about 15-30 seconds.</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Initial loading
   if (loading) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-20 text-center">
         <div className="animate-pulse">
           <p className="text-4xl mb-4">&#128196;</p>
-          <h1 className="text-2xl font-bold">Processing your resume...</h1>
+          <h1 className="text-2xl font-bold">Loading...</h1>
           <p className="text-gray-400 mt-2">Just a moment</p>
         </div>
       </main>
     );
   }
 
-  if (error) {
+  // No resume found at all
+  if (error && !resume) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-20 text-center">
         <p className="text-red-400">{error}</p>
-        <a href="/" className="text-orange-400 underline mt-4 inline-block">
-          Try again
+        <a href="/" className="text-orange-400 underline mt-4 inline-block">Try again</a>
+      </main>
+    );
+  }
+
+  // AI processing failed — resume already cleaned from DB
+  if (resume?.processing_error) {
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <p className="text-5xl mb-6">&#9888;&#65039;</p>
+        <h1 className="text-2xl font-bold mb-4">Something Went Wrong</h1>
+        <p className="text-gray-400 mb-2 max-w-lg mx-auto">
+          We were unable to process your resume after multiple attempts.
+        </p>
+        <p className="text-gray-500 text-sm mb-8 max-w-lg mx-auto">
+          Your payment has been recorded. Please contact us at support@resumeflame.com
+          for assistance or a refund. Your uploaded resume has been securely deleted from our servers.
+        </p>
+        <a
+          href="/"
+          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors inline-block"
+        >
+          Go Back Home
         </a>
       </main>
     );
   }
 
-  // Payment wall — show before any results
-  if (!resume?.paid) {
+  // Processing — payment confirmed, waiting for AI (or failed)
+  if (processing || (resume?.paid && !roast) || (error && !roast && paymentConfirmed.current)) {
+    // If there's an error, show the error instead of the spinner
+    if (error && !processing) {
+      return (
+        <main className="max-w-3xl mx-auto px-6 py-20 text-center">
+          <p className="text-5xl mb-6">&#9888;&#65039;</p>
+          <h1 className="text-2xl font-bold mb-4">Something Went Wrong</h1>
+          <p className="text-gray-400 mb-2 max-w-lg mx-auto">
+            We were unable to process your resume. This is usually a temporary issue on our end.
+          </p>
+          <p className="text-gray-500 text-sm mb-8 max-w-lg mx-auto">
+            Please try uploading your resume again.
+          </p>
+          <a
+            href="/"
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors inline-block"
+          >
+            Go Back Home
+          </a>
+        </main>
+      );
+    }
+
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <div className="animate-pulse">
+          <p className="text-4xl mb-4">&#128293;</p>
+          <h1 className="text-2xl font-bold">Analyzing your resume...</h1>
+          <p className="text-gray-400 mt-2">Payment confirmed! Generating your results — this takes about 15-30 seconds.</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Payment wall
+  if (!resume?.paid && !processing) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-16 text-center">
         <p className="text-4xl mb-4">&#128293;</p>
@@ -178,6 +341,8 @@ export default function RoastPage() {
         <p className="text-xs text-gray-500 mb-8">
           Results are delivered instantly after payment.
         </p>
+
+        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
         <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto text-left">
           <div className="bg-gray-900 border-2 border-orange-500 rounded-xl p-6 relative">
@@ -196,9 +361,10 @@ export default function RoastPage() {
             </ul>
             <button
               onClick={() => handlePayment("basic")}
-              className="mt-6 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              disabled={paymentLoading}
+              className="mt-6 w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
             >
-              Get Basic Fix — $3
+              {paymentLoading ? "Loading..." : "Get Basic Fix — $3"}
             </button>
           </div>
 
@@ -215,34 +381,72 @@ export default function RoastPage() {
             </ul>
             <button
               onClick={() => handlePayment("pro")}
-              className="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              disabled={paymentLoading}
+              className="mt-6 w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
             >
-              Get Pro Fix — $5
+              {paymentLoading ? "Loading..." : "Get Pro Fix — $5"}
             </button>
           </div>
         </div>
 
         <p className="text-xs text-gray-500 mt-6">
-          All purchases are final and non-refundable. Payments processed securely via Paddle.
+          All purchases are final and non-refundable. Payments processed securely via Lemon Squeezy.
         </p>
       </main>
     );
   }
 
-  // Paid — waiting for results to generate
-  if (!roast) {
+  // Thank you screen — after PDF downloaded
+  if (downloaded) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <div className="animate-pulse">
-          <p className="text-4xl mb-4">&#128293;</p>
-          <h1 className="text-2xl font-bold">Roasting your resume...</h1>
-          <p className="text-gray-400 mt-2">Payment confirmed! Generating your results — this takes about 15 seconds.</p>
+        <p className="text-5xl mb-6">&#127881;</p>
+        <h1 className="text-3xl font-bold mb-4">Thank You!</h1>
+        <p className="text-gray-400 mb-2 max-w-lg mx-auto">
+          Your improved resume has been downloaded. Your uploaded resume has been
+          securely deleted from our servers.
+        </p>
+        <p className="text-gray-500 text-sm mb-8">
+          We hope ResumeFlame helps you land your dream job!
+        </p>
+
+        <div className="flex flex-col items-center gap-4">
+          <a
+            href="/"
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors inline-block"
+          >
+            Roast Another Resume
+          </a>
+
+          {fix && (
+            <button
+              onClick={() => {
+                setDownloaded(false);
+              }}
+              className="text-gray-400 hover:text-white text-sm underline transition-colors"
+            >
+              Go back to results
+            </button>
+          )}
+        </div>
+
+        <div className="mt-10 border-t border-gray-800 pt-8">
+          <p className="text-gray-500 text-sm mb-3">Enjoyed the roast? Share it!</p>
+          <button
+            onClick={() => {
+              const text = `My resume just got roasted by AI and scored ${roast?.score}/10 on ResumeFlame! Try it: https://resumeflame.com`;
+              navigator.clipboard.writeText(text);
+            }}
+            className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors"
+          >
+            Copy Share Text
+          </button>
         </div>
       </main>
     );
   }
 
-  // Results page — shown after payment and generation
+  // Results page — roast + fix ready
   return (
     <main className="max-w-3xl mx-auto px-6 py-12">
       {/* Score */}
@@ -274,10 +478,7 @@ export default function RoastPage() {
         </h2>
         <div className="space-y-3">
           {roast?.roast_lines.map((line, i) => (
-            <div
-              key={i}
-              className="bg-gray-900 border border-gray-800 rounded-lg p-4 text-gray-300"
-            >
+            <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-4 text-gray-300">
               {line}
             </div>
           ))}
@@ -297,10 +498,10 @@ export default function RoastPage() {
         </ul>
       </section>
 
-      {/* Fix Section */}
+      {/* Fixed Resume + Download */}
       <section className="mb-10">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          &#9989; The Fix — Rewritten Resume
+          &#9989; Your Fixed Resume
         </h2>
 
         {fix ? (
@@ -308,14 +509,20 @@ export default function RoastPage() {
             <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans leading-relaxed">
               {fix}
             </pre>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(fix);
-              }}
-              className="mt-4 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              Copy to Clipboard
-            </button>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleDownloadPDF}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                Download Fixed Resume as PDF
+              </button>
+              <button
+                onClick={() => navigator.clipboard.writeText(fix)}
+                className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-3 px-4 rounded-lg transition-colors"
+              >
+                Copy Text
+              </button>
+            </div>
           </div>
         ) : (
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 text-center">
@@ -323,28 +530,6 @@ export default function RoastPage() {
           </div>
         )}
       </section>
-
-      {/* Share & CTA */}
-      <div className="text-center border-t border-gray-800 pt-8">
-        <p className="text-gray-400 mb-4">Share your roast score with friends</p>
-        <button
-          onClick={() => {
-            const text = `My resume just got roasted by AI and scored ${roast?.score}/10 on ResumeFlame!`;
-            navigator.clipboard.writeText(text);
-          }}
-          className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors"
-        >
-          Copy Share Text
-        </button>
-        <div className="mt-6">
-          <a
-            href="/"
-            className="text-orange-400 hover:text-orange-300 underline text-sm"
-          >
-            Roast another resume
-          </a>
-        </div>
-      </div>
     </main>
   );
 }

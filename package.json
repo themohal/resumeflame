@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@paddle/paddle-js": "^1.6.2",
     "@supabase/supabase-js": "^2.95.3",
     "next": "16.1.6",
     "openai": "^6.22.0",
