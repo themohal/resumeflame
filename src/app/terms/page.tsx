@@ -22,9 +22,10 @@ export default function Terms() {
         <p>
           Payments are processed securely through Lemon Squeezy. All prices are in USD.
           By purchasing, you agree to Lemon Squeezy&apos;s terms as our Merchant of Record.
-          <strong> All payments are final and non-refundable.</strong> Due to the
+          <strong> All sales are final. No refunds will be issued under any circumstances.</strong> Due to the
           instant, digital nature of our AI-generated deliverables, no refunds,
           returns, or credits will be issued once a transaction is completed.
+          By completing payment, you acknowledge and accept this no-refund policy.
         </p>
 
         <h2 className="text-xl font-semibold text-white mt-6">4. AI-Generated Content</h2>
