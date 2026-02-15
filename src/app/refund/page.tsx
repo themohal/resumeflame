@@ -3,7 +3,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Refund Policy - ResumeFlame",
   description: "Refund Policy for ResumeFlame. All sales are final. Read our complete no-refund policy for AI resume review and rewriting services.",
-  alternates: { canonical: "https://resumeflame.com/refund" },
+  alternates: { canonical: "https://resumeflame.vercel.app/refund" },
 };
 
 export default function Refund() {

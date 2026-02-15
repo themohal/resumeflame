@@ -3,7 +3,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms of Service - ResumeFlame",
   description: "Terms of Service for ResumeFlame AI resume review and rewriting service. Read our terms including payment policy, no-refund policy, and dispute resolution.",
-  alternates: { canonical: "https://resumeflame.com/terms" },
+  alternates: { canonical: "https://resumeflame.vercel.app/terms" },
 };
 
 export default function Terms() {

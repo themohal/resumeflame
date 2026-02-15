@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/roast/"],
       },
     ],
-    sitemap: "https://resumeflame.com/sitemap.xml",
+    sitemap: "https://resumeflame.vercel.app/sitemap.xml",
   };
 }

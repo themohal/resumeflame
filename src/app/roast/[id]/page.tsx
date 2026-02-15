@@ -436,7 +436,7 @@ export default function RoastPage() {
           <p className="text-gray-500 text-sm mb-3">Enjoyed the roast? Share it!</p>
           <button
             onClick={() => {
-              const text = `My resume just got roasted by AI and scored ${roast?.score}/10 on ResumeFlame! Try it: https://resumeflame.com`;
+              const text = `My resume just got roasted by AI and scored ${roast?.score}/10 on ResumeFlame! Try it: https://resumeflame.vercel.app`;
               navigator.clipboard.writeText(text);
             }}
             className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium py-2 px-6 rounded-lg transition-colors"

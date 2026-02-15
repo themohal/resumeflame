@@ -42,7 +42,7 @@ export const metadata: Metadata = {
       "Upload your resume, get instant AI feedback and a score out of 10, then unlock a professionally rewritten resume optimized for ATS systems.",
     type: "website",
     siteName: "ResumeFlame",
-    url: "https://resumeflame.com",
+    url: "https://resumeflame.vercel.app",
     locale: "en_US",
   },
   twitter: {
@@ -51,13 +51,13 @@ export const metadata: Metadata = {
     description:
       "Get your resume scored and rewritten by AI. Land more interviews with ATS-optimized resumes.",
   },
-  metadataBase: new URL("https://resumeflame.com"),
+  metadataBase: new URL("https://resumeflame.vercel.app"),
   robots: {
     index: true,
     follow: true,
   },
   alternates: {
-    canonical: "https://resumeflame.com",
+    canonical: "https://resumeflame.vercel.app",
   },
 };
 
@@ -74,7 +74,7 @@ export default function RootLayout({
     operatingSystem: "Web",
     description:
       "AI-powered resume reviewer and professional rewriter. Get your resume scored, reviewed, and rewritten with ATS-optimized keywords to land more interviews.",
-    url: "https://resumeflame.com",
+    url: "https://resumeflame.vercel.app",
     offers: [
       {
         "@type": "Offer",

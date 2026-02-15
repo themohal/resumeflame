@@ -3,7 +3,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy - ResumeFlame",
   description: "Privacy Policy for ResumeFlame. Learn how we collect, use, and delete your data. We permanently delete your resume immediately after processing. GDPR and CCPA compliant.",
-  alternates: { canonical: "https://resumeflame.com/privacy" },
+  alternates: { canonical: "https://resumeflame.vercel.app/privacy" },
 };
 
 export default function Privacy() {
