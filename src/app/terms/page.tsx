@@ -78,14 +78,96 @@ export default function Terms() {
           See our <a href="/privacy" className="text-orange-400 underline">Privacy Policy</a> for details.
         </p>
 
-        <h2 className="text-xl font-semibold text-white mt-6">9. Limitation of Liability</h2>
+        <h2 className="text-xl font-semibold text-white mt-6">9. Disclaimer of Warranties</h2>
         <p>
-          ResumeFlame is not responsible for job application outcomes, interview results, or
-          hiring decisions. Our service provides AI-generated suggestions and rewrites but
-          does not guarantee employment results of any kind.
+          The service is provided on an <strong>&quot;as is&quot; and &quot;as available&quot;</strong> basis
+          without warranties of any kind, whether express, implied, statutory, or otherwise.
+          ResumeFlame expressly disclaims all warranties, including but not limited to implied
+          warranties of merchantability, fitness for a particular purpose, accuracy, completeness,
+          and non-infringement. We make no guarantees regarding the quality, suitability, or
+          effectiveness of AI-generated content for any specific purpose, job application, or outcome.
         </p>
 
-        <h2 className="text-xl font-semibold text-white mt-6">10. Contact</h2>
+        <h2 className="text-xl font-semibold text-white mt-6">10. Limitation of Liability</h2>
+        <p>
+          To the maximum extent permitted by applicable law, ResumeFlame, its owners, operators,
+          affiliates, and service providers shall not be liable for any direct, indirect, incidental,
+          special, consequential, or punitive damages arising from or related to the use of this
+          service, the AI-generated content, or the inability to use the service, regardless of the
+          theory of liability (contract, tort, negligence, strict liability, or otherwise), even if
+          advised of the possibility of such damages.
+        </p>
+        <p>
+          In no event shall the total aggregate liability of ResumeFlame exceed the amount you
+          paid for the specific transaction giving rise to the claim.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">11. Indemnification</h2>
+        <p>
+          You agree to indemnify, defend, and hold harmless ResumeFlame, its owners, operators,
+          and affiliates from and against any and all claims, liabilities, damages, losses, costs,
+          and expenses (including reasonable legal fees) arising out of or related to your use of
+          the service, your violation of these terms, or any dispute you initiate regarding the
+          AI-generated content or payment.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">12. Binding Arbitration &amp; Waiver of Class Action</h2>
+        <p>
+          Any dispute, claim, or controversy arising out of or relating to these terms, the service,
+          or any transaction made through ResumeFlame shall be resolved exclusively through
+          <strong> binding individual arbitration</strong> and not in any court of law. You agree to
+          waive any right to participate in a class action, collective action, or representative
+          proceeding of any kind.
+        </p>
+        <p>
+          The arbitration shall be conducted under the rules of a recognized arbitration body
+          mutually agreed upon by the parties. If the parties cannot agree, arbitration shall
+          be conducted in accordance with the rules of the International Chamber of Commerce (ICC).
+          The arbitrator&apos;s decision shall be final and binding and may be entered as a judgment
+          in any court of competent jurisdiction.
+        </p>
+        <p>
+          By using this service and completing a purchase, you expressly agree that you will not
+          file, join, or participate in any lawsuit, class action, or legal proceeding in any
+          court or jurisdiction worldwide against ResumeFlame regarding the service, its results,
+          AI-generated content, pricing, or refund policy. All disputes must be resolved through
+          the arbitration process described above.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">13. Waiver of Legal Claims</h2>
+        <p>
+          To the fullest extent permitted by law, you irrevocably waive any right to bring legal
+          action, claims, or proceedings of any nature against ResumeFlame in any court, tribunal,
+          or regulatory body in any jurisdiction worldwide. This waiver covers all claims related to
+          the service, AI-generated output, payment transactions, refund policy, data handling,
+          and any other aspect of your interaction with ResumeFlame. You acknowledge that this
+          waiver is a material term of this agreement and that ResumeFlame would not provide the
+          service without it.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">14. Governing Law</h2>
+        <p>
+          These terms shall be governed by and construed in accordance with applicable international
+          commercial law principles. Any permitted legal proceedings shall be conducted exclusively
+          through binding arbitration as described in Section 12 above.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">15. Severability</h2>
+        <p>
+          If any provision of these terms is found to be unenforceable or invalid by an arbitrator
+          or court of competent jurisdiction, that provision shall be enforced to the maximum extent
+          permissible, and the remaining provisions shall continue in full force and effect.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">16. Acceptance of Terms</h2>
+        <p>
+          By uploading a resume, making a payment, or using any part of the ResumeFlame service,
+          you confirm that you have read, understood, and agree to be bound by these Terms of Service
+          in their entirety, including the no-refund policy, binding arbitration clause, waiver of
+          class action rights, and waiver of legal claims.
+        </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">17. Contact</h2>
         <p>
           For questions about these terms or technical support, please contact us
           at <strong>support@resumeflame.com</strong>.

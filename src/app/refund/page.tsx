@@ -68,6 +68,15 @@ export default function Refund() {
           the issue and deliver your results. Technical support inquiries do not constitute
           eligibility for a monetary refund.
         </p>
+
+        <h2 className="text-xl font-semibold text-white mt-6">No Legal Claims</h2>
+        <p>
+          By completing a purchase, you agree that any dispute related to payments, refunds, or
+          the service shall be resolved exclusively through binding arbitration as outlined in
+          our <a href="/terms" className="text-orange-400 underline">Terms of Service</a>. You
+          waive any right to bring legal action in any court or jurisdiction worldwide regarding
+          refunds, payment disputes, or the quality of AI-generated content.
+        </p>
       </div>
     </main>
   );
