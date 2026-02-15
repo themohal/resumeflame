@@ -1,3 +1,11 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy - ResumeFlame",
+  description: "Privacy Policy for ResumeFlame. Learn how we collect, use, and delete your data. We permanently delete your resume immediately after processing. GDPR and CCPA compliant.",
+  alternates: { canonical: "https://resumeflame.com/privacy" },
+};
+
 export default function Privacy() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-16">

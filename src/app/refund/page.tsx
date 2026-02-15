@@ -1,3 +1,11 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Refund Policy - ResumeFlame",
+  description: "Refund Policy for ResumeFlame. All sales are final. Read our complete no-refund policy for AI resume review and rewriting services.",
+  alternates: { canonical: "https://resumeflame.com/refund" },
+};
+
 export default function Refund() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-16">

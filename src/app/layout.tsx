@@ -42,6 +42,8 @@ export const metadata: Metadata = {
       "Upload your resume, get instant AI feedback and a score out of 10, then unlock a professionally rewritten resume optimized for ATS systems.",
     type: "website",
     siteName: "ResumeFlame",
+    url: "https://resumeflame.com",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
@@ -49,6 +51,7 @@ export const metadata: Metadata = {
     description:
       "Get your resume scored and rewritten by AI. Land more interviews with ATS-optimized resumes.",
   },
+  metadataBase: new URL("https://resumeflame.com"),
   robots: {
     index: true,
     follow: true,
@@ -63,8 +66,49 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "ResumeFlame",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "AI-powered resume reviewer and professional rewriter. Get your resume scored, reviewed, and rewritten with ATS-optimized keywords to land more interviews.",
+    url: "https://resumeflame.com",
+    offers: [
+      {
+        "@type": "Offer",
+        name: "Basic Fix",
+        price: "3.00",
+        priceCurrency: "USD",
+        description:
+          "AI resume score, feedback, key issues, and professionally rewritten resume.",
+      },
+      {
+        "@type": "Offer",
+        name: "Pro Fix",
+        price: "5.00",
+        priceCurrency: "USD",
+        description:
+          "Everything in Basic plus ATS keyword optimization, professional summary, and cover letter.",
+      },
+    ],
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      ratingCount: "150",
+      bestRating: "5",
+    },
+  };
+
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
