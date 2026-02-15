@@ -390,7 +390,9 @@ export default function RoastPage() {
         </div>
 
         <p className="text-xs text-gray-500 mt-6">
-          All sales are final. No refunds will be issued under any circumstances. By completing payment, you acknowledge and accept this policy. Payments processed securely via Lemon Squeezy.
+          All sales are final — no refunds. By purchasing, you consent to immediate digital delivery and waive any cooling-off period.
+          See our <a href="/refund" className="underline hover:text-gray-300">Refund Policy</a> and <a href="/terms" className="underline hover:text-gray-300">Terms of Service</a>.
+          Payments processed securely via Lemon Squeezy.
         </p>
       </main>
     );
