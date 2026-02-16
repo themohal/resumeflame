@@ -1,0 +1,6 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /roast/
+
+Sitemap: https://resumeflame.vercel.app/sitemap.xml
