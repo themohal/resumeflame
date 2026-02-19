@@ -187,43 +187,305 @@ export default function RoastPage() {
     }
   };
 
+  const formatResumeHTML = (text: string): string => {
+    const escaped = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const lines = escaped.split("\n");
+    let html = "";
+    let inList = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Skip empty lines (add spacing)
+      if (!line) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        continue;
+      }
+
+      // Detect section headers: ALL CAPS lines, or lines ending with ":"
+      // that are short (< 60 chars) and don't start with bullet
+      const isHeader =
+        (line === line.toUpperCase() && line.length > 2 && line.length < 60 && !/^[-•●▪*]/.test(line) && /[A-Z]/.test(line)) ||
+        (/^[A-Z][A-Za-z\s&/]+:$/.test(line) && line.length < 50);
+
+      // Detect name (first non-empty line that looks like a name)
+      const isFirstContentLine = i === 0 || lines.slice(0, i).every((l) => !l.trim());
+
+      // Detect bullet points
+      const isBullet = /^[-•●▪*]\s/.test(line) || /^\d+[.)]\s/.test(line);
+
+      // Detect contact info line (contains email, phone, or multiple | / separators)
+      const isContact =
+        (/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(line) ||
+          /\(\d{3}\)\s?\d{3}[-.]?\d{4}/.test(line) ||
+          /\d{3}[-.]?\d{3}[-.]?\d{4}/.test(line)) &&
+        !isBullet;
+
+      if (isFirstContentLine && !isHeader && !isBullet) {
+        // Likely the person's name
+        html += `<h1 class="resume-name">${line}</h1>`;
+      } else if (isContact) {
+        html += `<p class="contact-info">${line}</p>`;
+      } else if (isHeader) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        const headerText = line.replace(/:$/, "");
+        html += `<h2 class="section-header">${headerText}</h2><div class="section-divider"></div>`;
+      } else if (isBullet) {
+        const bulletText = line.replace(/^[-•●▪*]\s*/, "").replace(/^\d+[.)]\s*/, "");
+        if (!inList) {
+          html += '<ul class="bullet-list">';
+          inList = true;
+        }
+        html += `<li>${bulletText}</li>`;
+      } else {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        // Regular text — could be job title, company, date, etc.
+        // Detect date patterns on the right (e.g., "Software Engineer | Google | Jan 2020 - Present")
+        const hasDatePattern = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/.test(line) ||
+          /\b\d{4}\s*[-–]\s*(Present|\d{4})\b/.test(line);
+        if (hasDatePattern) {
+          html += `<p class="role-line">${line}</p>`;
+        } else {
+          html += `<p class="body-text">${line}</p>`;
+        }
+      }
+    }
+    if (inList) html += "</ul>";
+    return html;
+  };
+
   const handleDownloadPDF = () => {
     if (!fix) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    const resumeContent = formatResumeHTML(fix);
+
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <title>Resume - ResumeFlame</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      line-height: 1.6;
-      padding: 40px;
-      max-width: 800px;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.65;
+      color: #1f2937;
+      font-size: 10.5pt;
+      background: #fff;
+    }
+
+    .page-container {
+      max-width: 780px;
       margin: 0 auto;
-      color: #1a1a1a;
-      font-size: 12pt;
+      padding: 48px 52px 40px;
     }
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      font-family: inherit;
-      margin: 0;
+
+    /* ── Header / Logo ── */
+    .pdf-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #f97316;
+      margin-bottom: 28px;
     }
+    .logo-mark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-mark svg {
+      width: 22px;
+      height: 22px;
+    }
+    .logo-text {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 14pt;
+      color: #111827;
+      letter-spacing: -0.3px;
+    }
+    .logo-text span {
+      color: #f97316;
+    }
+    .header-tagline {
+      font-size: 8pt;
+      color: #9ca3af;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Resume Name ── */
+    .resume-name {
+      font-family: 'Playfair Display', 'Georgia', serif;
+      font-size: 22pt;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    /* ── Contact Info ── */
+    .contact-info {
+      font-size: 9.5pt;
+      color: #6b7280;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* ── Section Headers ── */
+    .section-header {
+      font-family: 'Inter', sans-serif;
+      font-size: 11pt;
+      font-weight: 700;
+      color: #111827;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 22px;
+      margin-bottom: 2px;
+      padding-bottom: 0;
+    }
+    .section-divider {
+      height: 2px;
+      background: linear-gradient(90deg, #f97316 0%, #fde68a 60%, transparent 100%);
+      margin-bottom: 12px;
+      border-radius: 1px;
+    }
+
+    /* ── Role / Date Lines ── */
+    .role-line {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #374151;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    /* ── Body Text ── */
+    .body-text {
+      font-size: 10.5pt;
+      color: #374151;
+      margin-bottom: 3px;
+      line-height: 1.6;
+    }
+
+    /* ── Bullet List ── */
+    .bullet-list {
+      list-style: none;
+      padding-left: 16px;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+    .bullet-list li {
+      position: relative;
+      padding-left: 14px;
+      margin-bottom: 4px;
+      font-size: 10.5pt;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .bullet-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 7px;
+      width: 5px;
+      height: 5px;
+      background: #f97316;
+      border-radius: 50%;
+    }
+
+    /* ── Footer ── */
+    .pdf-footer {
+      margin-top: 36px;
+      padding-top: 14px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-text {
+      font-size: 7.5pt;
+      color: #d1d5db;
+    }
+    .footer-brand {
+      font-size: 7.5pt;
+      color: #d1d5db;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .footer-brand svg { width: 10px; height: 10px; }
+
+    /* ── Print Styles ── */
     @media print {
-      body { padding: 20px; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-container { padding: 32px 40px 28px; max-width: 100%; }
+      .pdf-header { margin-bottom: 24px; }
+      .section-header { margin-top: 18px; }
+    }
+
+    @page {
+      margin: 0.4in 0.3in;
+      size: letter;
     }
   </style>
 </head>
 <body>
-  <pre>${fix.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+  <div class="page-container">
+
+    <!-- Header with Logo -->
+    <div class="pdf-header">
+      <div class="logo-mark">
+        <svg viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 36c-6.6 0-12-5.4-12-12 0-4.4 2.4-8.8 6-14 1.2-1.8 2.6-3.6 4-5.4.4-.6 1.2-.6 1.6 0 1 1.2 2 2.6 2.8 4 .2-.8.6-1.6 1-2.4.3-.5 1-.5 1.3 0C24.4 12.8 28 19.2 28 24c0 6.6-5.4 12-12 12z" fill="url(#fg)"/>
+          <path d="M16 32c4.4 0 8-3.6 8-8 0-3.2-2-7.2-5.2-12.4-.4.8-.8 1.8-1 2.8-.2.6-1 .8-1.4.4-1.4-1.2-2.6-3-3.6-4.4C10.4 14 8 17.6 8 24c0 4.4 3.6 8 8 8z" fill="#fff" opacity="0.25"/>
+          <defs><linearGradient id="fg" x1="16" y1="36" x2="16" y2="0"><stop stop-color="#f97316"/><stop offset="1" stop-color="#ef4444"/></linearGradient></defs>
+        </svg>
+        <span class="logo-text">Resume<span>Flame</span></span>
+      </div>
+      <span class="header-tagline">AI-Powered Resume</span>
+    </div>
+
+    <!-- Resume Content -->
+    ${resumeContent}
+
+    <!-- Footer -->
+    <div class="pdf-footer">
+      <span class="footer-text">Generated by ResumeFlame &mdash; AI Resume Optimization</span>
+      <span class="footer-brand">
+        <svg viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 36c-6.6 0-12-5.4-12-12 0-4.4 2.4-8.8 6-14 1.2-1.8 2.6-3.6 4-5.4.4-.6 1.2-.6 1.6 0 1 1.2 2 2.6 2.8 4 .2-.8.6-1.6 1-2.4.3-.5 1-.5 1.3 0C24.4 12.8 28 19.2 28 24c0 6.6-5.4 12-12 12z" fill="#d1d5db"/>
+        </svg>
+        resumeflame.vercel.app
+      </span>
+    </div>
+
+  </div>
+
   <script>
     window.onload = function() {
-      window.print();
-      window.onafterprint = function() { window.close(); };
+      // Small delay for fonts to load
+      setTimeout(function() {
+        window.print();
+        window.onafterprint = function() { window.close(); };
+      }, 500);
     };
   </script>
 </body>
